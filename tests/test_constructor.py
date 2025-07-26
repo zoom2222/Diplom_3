@@ -1,7 +1,5 @@
 import pytest
 import allure
-import time
-from selenium.webdriver.common.by import By
 from pages.constructor_page import ConstructorPage
 from data import BurgerIngredients, Urls
 
@@ -12,50 +10,60 @@ class TestConstructor:
     @allure.title('Переход в конструктор из ленты заказов')
     def test_navigate_to_constructor(self, driver):
         constructor_page = ConstructorPage(driver)
-        driver.get(Urls.FEED_URL)
+        constructor_page.open_page(Urls.FEED_URL)
         constructor_page.click_constructor_tab()
-        assert driver.current_url == Urls.CONSTRUCTOR_URL
+        current_url = constructor_page.get_current_url()
+        assert current_url == Urls.CONSTRUCTOR_URL, \
+            f"Ожидался URL {Urls.CONSTRUCTOR_URL}, получен {current_url}"
 
     @allure.story('Ингредиенты')
     @allure.title('Проверка модального окна ингредиента')
     @pytest.mark.parametrize('ingredient', BurgerIngredients.BUNS)
     def test_ingredient_details_modal(self, driver, ingredient):
         constructor_page = ConstructorPage(driver)
-        buns_section = driver.find_element(By.XPATH, "//h2[text()='Булки']")
-        driver.execute_script("arguments[0].scrollIntoView(true);", buns_section)
-        time.sleep(1)  # Небольшая пауза для стабилизации
-
+        constructor_page.scroll_to_buns_section()
         constructor_page.click_ingredient(ingredient)
-        assert constructor_page.is_ingredient_details_visible()
+
+        is_visible = constructor_page.is_ingredient_details_visible()
+        assert is_visible, "Модальное окно с деталями ингредиента не отобразилось"
+
         constructor_page.close_modal()
+        is_closed = not constructor_page.is_ingredient_details_visible()
+        assert is_closed, "Модальное окно не закрылось"
 
     @allure.story('Ингредиенты')
     @allure.title('Проверка счетчика ингредиента')
     def test_ingredient_counter(self, driver, login):
         constructor_page = ConstructorPage(driver)
         ingredient = BurgerIngredients.BUNS[0]
-        buns_section = driver.find_element(By.XPATH, "//h2[text()='Булки']")
-        driver.execute_script("arguments[0].scrollIntoView(true);", buns_section)
-        time.sleep(1)
+        constructor_page.scroll_to_buns_section()
 
         initial_count = constructor_page.get_ingredient_counter(ingredient)
         constructor_page.add_ingredient_to_order(ingredient)
-        assert constructor_page.get_ingredient_counter(ingredient) == initial_count + 1
+        new_count = constructor_page.get_ingredient_counter(ingredient)
+
+        assert new_count == initial_count + 1, \
+            f"Счетчик должен увеличиться с {initial_count} до {initial_count + 1}, получено {new_count}"
 
     @allure.story('Заказы')
     @allure.title('Проверка оформления заказа')
     def test_make_order(self, driver, login):
         constructor_page = ConstructorPage(driver)
 
-        # Добавляем булку и начинку
+        # Добавляем ингредиенты
         for ingredient in [BurgerIngredients.BUNS[0], BurgerIngredients.FILLINGS[0]]:
-            section = driver.find_element(By.XPATH,
-                                          f"//h2[text()='{'Булки' if ingredient in BurgerIngredients.BUNS else 'Начинки'}']")
-            driver.execute_script("arguments[0].scrollIntoView(true);", section)
-            time.sleep(1)
+            section_name = 'Булки' if ingredient in BurgerIngredients.BUNS else 'Начинки'
+            constructor_page.scroll_to_ingredient_section(section_name)
             constructor_page.add_ingredient_to_order(ingredient)
 
         constructor_page.make_order()
         order_number = constructor_page.get_order_number()
-        assert order_number.isdigit()
+
+        assert order_number.isdigit(), \
+            f"Номер заказа должен быть числом, получено '{order_number}'"
+        assert len(order_number) > 0, \
+            "Номер заказа не должен быть пустым"
+
         constructor_page.close_modal()
+        is_closed = not constructor_page.is_ingredient_details_visible()
+        assert is_closed, "Модальное окно заказа не закрылось"
