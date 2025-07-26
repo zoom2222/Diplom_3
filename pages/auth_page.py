@@ -3,12 +3,14 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from locators.auth_locators import AuthLocators
 from data import Urls
+import allure
 
 class AuthPage:
     def __init__(self, driver):
         self.driver = driver
         self.wait = WebDriverWait(driver, 10)
 
+    @allure.step("Авторизация пользователя с email {email} и паролем {password}")
     def login(self, email, password):
         self.driver.find_element(By.CSS_SELECTOR, AuthLocators.EMAIL_INPUT).send_keys(email)
         self.driver.find_element(By.CSS_SELECTOR, AuthLocators.PASSWORD_INPUT).send_keys(password)
