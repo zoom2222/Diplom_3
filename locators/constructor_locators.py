@@ -8,6 +8,9 @@ class ConstructorLocators:
     SAUCES_SECTION = "//h2[contains(text(), 'Соусы')]/following-sibling::div[contains(@class, 'BurgerIngredients_ingredients')]"
     FILLINGS_SECTION = "//h2[contains(text(), 'Начинки')]/following-sibling::div[contains(@class, 'BurgerIngredients_ingredients')]"
 
+    # Элементы конструктора
+    CONSTRUCTOR_AREA = "//div[contains(@class, 'BurgerConstructor_basket')]"
+
     # Локаторы ингредиентов
     INGREDIENT_ITEM = "//article[contains(@class, 'IngredientCard_card') and .//p[contains(text(), '{}')]]"
     INGREDIENT_COUNTER = "//p[contains(text(), '{}')]/ancestor::article//div[contains(@class, 'counter__num')]"

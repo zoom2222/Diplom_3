@@ -1,53 +1,39 @@
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
+from locators.constructor_locators import ConstructorLocators
+from data import Urls, BurgerIngredients
 import allure
+from pages.base_page import BasePage
 
-class BasePage:
+class ConstructorPage(BasePage):
     def __init__(self, driver):
-        self.driver = driver
-        self.wait = WebDriverWait(driver, 15)
+        super().__init__(driver)
 
-    def click_element(self, locator):
-        element = self.wait.until(EC.element_to_be_clickable((By.XPATH, locator)))
-        element.click()
+    @allure.step("Кликнуть на вкладку 'Конструктор'")
+    def click_constructor_tab(self):
+        self.click_element_with_js(ConstructorLocators.CONSTRUCTOR_TAB)
+        self.wait_for_url(Urls.CONSTRUCTOR_URL)
 
-    def click_element_with_js(self, locator):
-        element = self.wait.until(EC.element_to_be_clickable((By.XPATH, locator)))
-        self.driver.execute_script("arguments[0].click();", element)
+    @allure.step("Кликнуть на вкладку 'Лента заказов'")
+    def click_feed_tab(self):
+        self.click_element_with_js(ConstructorLocators.FEED_TAB)
+        self.wait_for_url(Urls.FEED_URL)
 
-    def find_element(self, locator):
-        return self.wait.until(EC.presence_of_element_located((By.XPATH, locator)))
+    @allure.step("Добавить ингредиент в заказ")
+    def add_ingredient_to_order(self, ingredient_name):
+        section_name = 'Булки' if ingredient_name in BurgerIngredients.BUNS else 'Начинки'
+        locator = f"//h2[text()='{section_name}']"
+        self.scroll_to_element(locator)
+        ingredient_locator = ConstructorLocators.INGREDIENT_ITEM.format(ingredient_name)
+        self.drag_and_drop(ingredient_locator, ConstructorLocators.CONSTRUCTOR_AREA)
 
-    def scroll_to_element(self, locator):
-        element = self.find_element(locator)
-        self.driver.execute_script("arguments[0].scrollIntoView(true);", element)
-        self.wait.until(EC.visibility_of(element))
+    @allure.step("Оформить заказ")
+    def make_order(self):
+        self.click_element(ConstructorLocators.ORDER_BUTTON)
 
-    def scroll_to_element_center(self, locator):
-        element = self.find_element(locator)
-        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
-        self.wait.until(EC.visibility_of(element))
+    @allure.step("Получить номер заказа")
+    def get_order_number(self):
+        return self.get_element_text(ConstructorLocators.ORDER_MODAL)
 
-    def is_element_visible(self, locator):
-        try:
-            return bool(self.wait.until(EC.visibility_of_element_located((By.XPATH, locator))))
-        except:
-            return False
-
-    def wait_for_element_to_disappear(self, locator):
-        self.wait.until(EC.invisibility_of_element_located((By.XPATH, locator)))
-
-    def get_element_text(self, locator):
-        element = self.wait.until(EC.visibility_of_element_located((By.XPATH, locator)))
-        return element.text
-
-    def wait_for_url(self, url):
-        self.wait.until(EC.url_to_be(url))
-
-    def attach_screenshot(self, name):
-        allure.attach(
-            self.driver.get_screenshot_as_png(),
-            name=name,
-            attachment_type=allure.attachment_type.PNG
-        )
+    @allure.step("Закрыть модальное окно")
+    def close_modal(self):
+        self.click_element(ConstructorLocators.MODAL_CLOSE_BUTTON)
+        self.wait_for_element_to_disappear(ConstructorLocators.INGREDIENT_DETAILS_MODAL)

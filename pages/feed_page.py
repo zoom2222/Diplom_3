@@ -1,30 +1,36 @@
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
 from locators.feed_locators import FeedLocators
-from data import Urls
+from pages.base_page import BasePage
+import allure
 
-
-class FeedPage:
+class FeedPage(BasePage):
     def __init__(self, driver):
-        self.driver = driver
-        self.wait = WebDriverWait(driver, 10)
+        super().__init__(driver)
 
+    @allure.step("Получить общее количество заказов")
     def get_total_orders_count(self):
-        return int(self.driver.find_element(By.XPATH, FeedLocators.TOTAL_ORDERS_COUNT).text)
+        count_text = self.get_element_text(FeedLocators.TOTAL_ORDERS_COUNT)
+        return int(count_text)
 
+    @allure.step("Получить количество заказов за сегодня")
     def get_today_orders_count(self):
-        return int(self.driver.find_element(By.XPATH, FeedLocators.TODAY_ORDERS_COUNT).text)
+        count_text = self.get_element_text(FeedLocators.TODAY_ORDERS_COUNT)
+        return int(count_text)
 
+    @allure.step("Проверить наличие заказа {order_number} в работе")
     def is_order_in_progress(self, order_number):
-        try:
-            self.driver.find_element(By.XPATH, FeedLocators.ORDER_IN_PROGRESS.format(order_number))
-            return True
-        except:
-            return False
+        locator = FeedLocators.ORDER_IN_PROGRESS.format(order_number)
+        return self.is_element_visible(locator)
 
-    def get_first_order_number(self):
-        order_card = self.wait.until(
-            EC.visibility_of_element_located((By.XPATH, FeedLocators.ORDER_CARD))
+    @allure.step("Дождаться изменения счетчика заказов")
+    def wait_for_orders_count_change(self, initial_count, timeout=10):
+        self.wait.until(
+            lambda d: self.get_total_orders_count() > initial_count,
+            message=f"Счетчик заказов не изменился за {timeout} секунд"
         )
-        return order_card.text.split('\n')[0]
+
+    @allure.step("Дождаться появления заказа {order_number} в работе")
+    def wait_for_order_in_progress(self, order_number, timeout=10):
+        self.wait.until(
+            lambda d: self.is_order_in_progress(order_number),
+            message=f"Заказ {order_number} не появился в работе за {timeout} секунд"
+        )
